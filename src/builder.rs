@@ -222,7 +222,24 @@ impl Builder {
         let tmppath_macro = format!("_tmppath {}", self.rpmbuild_dir.join("tmp").display());
 
         // Calculate rpmbuild arguments
-        let args = ["-D", &topdir_macro, "-D", &tmppath_macro, "-ba", &spec_path];
+        let mut args = vec!["-D", &topdir_macro, "-D", &tmppath_macro, "-ba", &spec_path];
+
+        let arch = match self.config.metadata {
+            Some(crate::config::PackageMetadata {
+                rpm:
+                    Some(RpmConfig {
+                        target_architecture: Some(ref arch),
+                        ..
+                    }),
+                ..
+            }) => Some(arch.clone()),
+            _ => None,
+        };
+
+        if let Some(arch) = arch.as_ref() {
+            args.push("--target");
+            args.push(arch);
+        }
 
         if self.verbose {
             status_ok!("Running", "{} {}", cmd.path.display(), &args.join(" "));
